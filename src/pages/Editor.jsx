@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import MarkdownPreview from '../components/MarkdownPreview';
 import toast from 'react-hot-toast';
@@ -6,6 +6,20 @@ import toast from 'react-hot-toast';
 const Editor = () => {
     const [content, setContent] = useState('# Smart Editor\n\nEnter your text here. Markdown tables are supported!\n\n| Feature | Status | Description |\n| :--- | :---: | :--- |\n| Tables | ✅ | Beautifully styled |\n| Spacing | ✅ | Clean and modern |\n| Markdown | ✅ | Full GFM support |');
     const [isSaving, setIsSaving] = useState(false);
+    const [expiryType, setExpiryType] = useState('48h');
+    const [shareUrl, setShareUrl] = useState('');
+    const [showSharePopover, setShowSharePopover] = useState(false);
+    const shareAreaRef = useRef(null);
+
+    useEffect(() => {
+        const handleOutsideClick = (event) => {
+            if (!shareAreaRef.current?.contains(event.target)) {
+                setShowSharePopover(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, []);
 
     const getShareErrorMessage = (error) => {
         const raw = String(error?.message || '').toLowerCase();
@@ -33,7 +47,9 @@ const Editor = () => {
 
         setIsSaving(true);
         try {
-            const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+            const expiresAt = expiryType === 'never'
+                ? null
+                : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
             const { data, error } = await supabase
                 .from('documents')
                 .insert([{ content, expires_at: expiresAt }])
@@ -43,20 +59,32 @@ const Editor = () => {
             if (error) throw error;
             if (!data?.id) throw new Error('Insert succeeded but no document id was returned.');
 
-            const shareUrl = `${window.location.origin}/view/${data.id}`;
+            const nextShareUrl = `${window.location.origin}/view/${data.id}`;
+            setShareUrl(nextShareUrl);
+            setShowSharePopover(true);
             try {
-                await navigator.clipboard.writeText(shareUrl);
-                toast.success('Link copied! Valid for 48 hours.');
+                await navigator.clipboard.writeText(nextShareUrl);
+                toast.success(expiryType === 'never' ? 'Link copied! Never expires.' : 'Link copied! Valid for 48 hours.');
             } catch (clipboardError) {
                 console.warn('Clipboard write failed:', clipboardError);
-                window.prompt('Copy your share link:', shareUrl);
-                toast.success('Link created. Copy it from the prompt.');
+                toast.success('Link created. Use the Copy button below Share.');
             }
         } catch (error) {
             console.error('Error sharing:', error);
             toast.error(getShareErrorMessage(error));
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const copyShareUrl = async () => {
+        if (!shareUrl) return;
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success('Share URL copied.');
+        } catch (error) {
+            console.error('Clipboard write failed:', error);
+            window.prompt('Copy your share link:', shareUrl);
         }
     };
 
@@ -83,19 +111,48 @@ const Editor = () => {
                     </nav>
                 </div>
 
-                <button
-                    onClick={handleShare}
-                    disabled={isSaving}
-                    className="relative group px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-full font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-95 flex items-center gap-2 overflow-hidden"
-                >
-                    <span className="relative z-10">{isSaving ? 'Saving...' : 'Share Document'}</span>
-                    {!isSaving && (
-                        <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
+                <div ref={shareAreaRef} className="relative flex items-center gap-2">
+                    <select
+                        value={expiryType}
+                        onChange={(e) => setExpiryType(e.target.value)}
+                        className="h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    >
+                        <option value="48h">Expires in 48h</option>
+                        <option value="never">Never expires</option>
+                    </select>
+                    <button
+                        onClick={handleShare}
+                        disabled={isSaving}
+                        className="relative group px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-full font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-95 flex items-center gap-2 overflow-hidden"
+                    >
+                        <span className="relative z-10">{isSaving ? 'Saving...' : 'Share Document'}</span>
+                        {!isSaving && (
+                            <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </button>
+                    {showSharePopover && shareUrl && (
+                        <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3 shadow-2xl z-50">
+                            <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Share URL</p>
+                            <p className="text-[11px] text-slate-400 mb-2">{expiryType === 'never' ? 'Never expires' : 'Expires in 48 hours'}</p>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    readOnly
+                                    value={shareUrl}
+                                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200"
+                                />
+                                <button
+                                    onClick={copyShareUrl}
+                                    className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </button>
+                </div>
             </header>
 
             <main className="flex-1 flex overflow-hidden">
