@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 const Viewer = () => {
     const { id } = useParams();
     const [content, setContent] = useState('');
+    const [expiresAt, setExpiresAt] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -21,7 +22,10 @@ const Viewer = () => {
 
                 if (error) throw error;
 
-                if (new Date(data.expires_at) < new Date()) {
+                setExpiresAt(data.expires_at ?? null);
+
+                // Null/empty expiry means this share never expires.
+                if (data.expires_at && new Date(data.expires_at) < new Date()) {
                     setError('This document has expired.');
                 } else {
                     setContent(data.content);
@@ -101,7 +105,7 @@ const Viewer = () => {
 
                 <footer className="w-full max-w-4xl flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em] text-slate-600 pb-16 opacity-60">
                     <div className="flex gap-10">
-                        <span className="hover:text-indigo-400 transition-colors cursor-default">Valid Until: {expiresAt ? new Date(expiresAt).toLocaleDateString() : 'N/A'}</span>
+                        <span className="hover:text-indigo-400 transition-colors cursor-default">Valid Until: {expiresAt ? new Date(expiresAt).toLocaleDateString() : 'Never'}</span>
                         <span className="hover:text-indigo-400 transition-colors cursor-default">{content.split(/\s+/).filter(Boolean).length} Words</span>
                     </div>
                     <div className="tracking-[0.5em] group cursor-default">
