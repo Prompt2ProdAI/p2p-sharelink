@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
 import MarkdownPreview from '../components/MarkdownPreview';
 import toast from 'react-hot-toast';
 
@@ -7,9 +7,27 @@ const Editor = () => {
     const [content, setContent] = useState('# Smart Editor\n\nEnter your text here. Markdown tables are supported!\n\n| Feature | Status | Description |\n| :--- | :---: | :--- |\n| Tables | ✅ | Beautifully styled |\n| Spacing | ✅ | Clean and modern |\n| Markdown | ✅ | Full GFM support |');
     const [isSaving, setIsSaving] = useState(false);
 
+    const getShareErrorMessage = (error) => {
+        const raw = String(error?.message || '').toLowerCase();
+        if (raw.includes('supabase not configured')) {
+            return 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_KEY to .env.';
+        }
+        if (raw.includes('row-level security') || raw.includes('permission denied')) {
+            return 'Supabase rejected insert. Add an INSERT policy for anon users on documents (or disable RLS for testing).';
+        }
+        if (raw.includes('relation') && raw.includes('documents') && raw.includes('does not exist')) {
+            return 'Table "documents" does not exist. Run the SQL setup from README.';
+        }
+        return 'Failed to create share link.';
+    };
+
     const handleShare = async () => {
         if (!content.trim()) {
             toast.error('Cannot share empty content');
+            return;
+        }
+        if (!supabaseConfigured) {
+            toast.error('Supabase is not configured. Create .env and restart dev server.');
             return;
         }
 
@@ -23,13 +41,20 @@ const Editor = () => {
                 .single();
 
             if (error) throw error;
+            if (!data?.id) throw new Error('Insert succeeded but no document id was returned.');
 
             const shareUrl = `${window.location.origin}/view/${data.id}`;
-            await navigator.clipboard.writeText(shareUrl);
-            toast.success('Link copied! Valid for 48 hours.');
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success('Link copied! Valid for 48 hours.');
+            } catch (clipboardError) {
+                console.warn('Clipboard write failed:', clipboardError);
+                window.prompt('Copy your share link:', shareUrl);
+                toast.success('Link created. Copy it from the prompt.');
+            }
         } catch (error) {
             console.error('Error sharing:', error);
-            toast.error('Failed to create share link.');
+            toast.error(getShareErrorMessage(error));
         } finally {
             setIsSaving(false);
         }

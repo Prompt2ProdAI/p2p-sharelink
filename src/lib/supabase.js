@@ -17,8 +17,12 @@ if (!supabaseUrl || !supabaseAnonKey || !isValidUrl(supabaseUrl)) {
     console.warn('Supabase URL or Key is missing or invalid. Check your .env setup.')
 }
 
+export const supabaseConfigured = Boolean(
+    supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)
+);
+
 // Create a mock if URL is invalid to prevent crash
-export const supabase = (supabaseUrl && isValidUrl(supabaseUrl))
+export const supabase = supabaseConfigured
     ? createClient(supabaseUrl, supabaseAnonKey)
     : {
         from: () => ({
