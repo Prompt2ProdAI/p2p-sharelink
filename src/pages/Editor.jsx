@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 const Editor = () => {
     const [content, setContent] = useState('# Smart Editor\n\nEnter your text here. Markdown tables are supported!\n\n| Feature | Status | Description |\n| :--- | :---: | :--- |\n| Tables | ✅ | Beautifully styled |\n| Spacing | ✅ | Clean and modern |\n| Markdown | ✅ | Full GFM support |');
     const [isSaving, setIsSaving] = useState(false);
+    const [focusMode, setFocusMode] = useState(false);
     const [expiryType, setExpiryType] = useState('48h');
     const [shareUrl, setShareUrl] = useState('');
     const [showSharePopover, setShowSharePopover] = useState(false);
@@ -50,6 +51,7 @@ const Editor = () => {
             const expiresAt = expiryType === 'never'
                 ? null
                 : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
             const { data, error } = await supabase
                 .from('documents')
                 .insert([{ content, expires_at: expiresAt }])
@@ -62,6 +64,7 @@ const Editor = () => {
             const nextShareUrl = `${window.location.origin}/view/${data.id}`;
             setShareUrl(nextShareUrl);
             setShowSharePopover(true);
+
             try {
                 await navigator.clipboard.writeText(nextShareUrl);
                 toast.success(expiryType === 'never' ? 'Link copied! Never expires.' : 'Link copied! Valid for 48 hours.');
@@ -89,100 +92,137 @@ const Editor = () => {
     };
 
     const insertTable = () => {
-        const tableTemplate = '\n\n| Header 1 | Header 2 | Header 3 |\n| :--- | :---: | ---: |\n| Row 1 Col 1 | Row 1 Col 2 | Row 1 Col 3 |\n| Row 2 Col 1 | Row 2 Col 2 | Row 2 Col 3 |\n\n';
+        const tableTemplate = `
+| Header 1 | Header 2 | Header 3 |
+| :--- | :--- | :--- |
+| Row 1, Col 1 | Row 1, Col 2 | Row 1, Col 3 |
+| Row 2, Col 1 | Row 2, Col 2 | Row 2, Col 3 |
+`;
         setContent(prev => prev + tableTemplate);
+        toast.success('Table template inserted!');
     };
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-            <header className="h-16 flex items-center justify-between px-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-50">
-                <div className="flex items-center gap-8">
-                    <h1 className="text-xl font-bold tracking-tight bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+        <div className="flex flex-col h-screen overflow-hidden relative">
+            <div className={`mesh-background transition-opacity duration-1000 ${focusMode ? 'opacity-20' : 'opacity-60'}`} />
+
+            {/* Minimalist Header */}
+            <header className={`h-14 flex items-center justify-between px-8 relative z-50 transition-all duration-700 ${focusMode ? 'focus-dim' : ''}`}>
+                <div className="flex items-center gap-6">
+                    <h1 className="text-lg gradient-text tracking-tighter opacity-80 hover:opacity-100 transition-opacity cursor-default">
                         UltraWriter
                     </h1>
-                    <nav className="hidden md:flex items-center gap-4">
-                        <button
-                            onClick={insertTable}
-                            className="text-sm font-medium text-slate-500 hover:text-indigo-500 flex items-center gap-1.5 transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18" /></svg>
-                            Insert Table
-                        </button>
-                    </nav>
                 </div>
 
-                <div ref={shareAreaRef} className="relative flex items-center gap-2">
-                    <select
-                        value={expiryType}
-                        onChange={(e) => setExpiryType(e.target.value)}
-                        className="h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    >
-                        <option value="48h">Expires in 48h</option>
-                        <option value="never">Never expires</option>
-                    </select>
+                <div className="flex items-center gap-4">
                     <button
-                        onClick={handleShare}
-                        disabled={isSaving}
-                        className="relative group px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-full font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-95 flex items-center gap-2 overflow-hidden"
+                        onClick={() => setFocusMode(!focusMode)}
+                        className="px-4 py-1 rounded-full bg-white/5 refractive-edge text-[9px] font-black tracking-widest text-slate-400 hover:text-indigo-400 transition-colors tactile-bounce"
                     >
-                        <span className="relative z-10">{isSaving ? 'Saving...' : 'Share Document'}</span>
-                        {!isSaving && (
-                            <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        FOCUS MODE: {focusMode ? 'ON' : 'OFF'}
                     </button>
-                    {showSharePopover && shareUrl && (
-                        <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3 shadow-2xl z-50">
-                            <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Share URL</p>
-                            <p className="text-[11px] text-slate-400 mb-2">{expiryType === 'never' ? 'Never expires' : 'Expires in 48 hours'}</p>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    readOnly
-                                    value={shareUrl}
-                                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200"
-                                />
-                                <button
-                                    onClick={copyShareUrl}
-                                    className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
-                                >
-                                    Copy
-                                </button>
+
+                    <div ref={shareAreaRef} className="relative flex items-center gap-2">
+                        <select
+                            value={expiryType}
+                            onChange={(e) => setExpiryType(e.target.value)}
+                            className="h-8 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 text-[9px] font-black uppercase tracking-widest text-slate-400 focus:outline-none transition-all hover:bg-white/10"
+                        >
+                            <option value="48h">48H</option>
+                            <option value="never">∞ INF</option>
+                        </select>
+                        <button
+                            onClick={handleShare}
+                            disabled={isSaving}
+                            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white rounded-full font-black text-[9px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95 tactile-bounce"
+                        >
+                            {isSaving ? 'Syncing...' : 'Share Link'}
+                        </button>
+
+                        {showSharePopover && shareUrl && (
+                            <div className="absolute right-0 top-full mt-4 w-72 liquid-glass refractive-edge p-6 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500/60 mb-2">Transmission Secure</p>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        readOnly
+                                        value={shareUrl}
+                                        className="w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-[10px] text-slate-300 focus:outline-none"
+                                    />
+                                    <button
+                                        onClick={copyShareUrl}
+                                        className="rounded-xl px-4 py-3 text-[9px] font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </header>
 
-            <main className="flex-1 flex overflow-hidden">
-                {/* Editor Section */}
-                <section className="flex-1 relative flex flex-col min-w-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <div className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 pointer-events-none">
-                        Editor
+            <main className="flex-1 flex overflow-hidden p-4 lg:p-8 gap-6 lg:gap-10 relative z-10">
+                {/* Editor Panel */}
+                <section className={`flex-1 flex flex-col overflow-hidden group transition-all duration-700 ${focusMode ? 'focus-active' : 'premium-card'}`}>
+                    <div className={`h-10 flex items-center px-8 border-b border-white/5 text-[8px] font-black uppercase tracking-[0.3em] text-indigo-500/40 transition-opacity duration-700 ${focusMode ? 'opacity-0' : 'opacity-100'}`}>
+                        Input Buffer
                     </div>
                     <textarea
-                        className="flex-1 w-full p-12 pt-16 resize-none focus:outline-none dark:bg-transparent bg-transparent font-mono text-base leading-relaxed text-slate-700 dark:text-slate-300 selection:bg-indigo-100 dark:selection:bg-indigo-900/40"
+                        className="flex-1 w-full p-10 lg:p-14 resize-none focus:outline-none bg-transparent font-mono text-sm leading-[2] text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-800 transition-all duration-700"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        placeholder="Write your amazing content here..."
+                        placeholder="Begin your creative flow..."
                         spellCheck="false"
                     />
-                    <div className="h-8 flex items-center justify-between px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 font-medium tracking-wide uppercase">
-                        <span>{content.split(/\s+/).filter(Boolean).length} words</span>
-                        <span>{content.length} characters</span>
-                    </div>
                 </section>
 
-                {/* Preview Section */}
-                <section className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-slate-950/50 scroll-smooth">
-                    <div className="max-w-3xl mx-auto py-16 px-12">
-                        <div className="bg-white dark:bg-slate-900 shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-[2rem] p-12 min-h-[calc(100vh-12rem)] border border-slate-200/60 dark:border-slate-800/60 transition-all duration-300">
-                            <MarkdownPreview content={content} />
-                        </div>
+                {/* Preview Panel */}
+                <section className={`flex-1 overflow-y-auto scroll-smooth group transition-all duration-700 ${focusMode ? 'focus-dim translate-x-12' : 'premium-card'}`}>
+                    <div className="h-10 flex items-center px-8 border-b border-white/5 text-[8px] font-black uppercase tracking-[0.3em] text-indigo-500/40 sticky top-0 bg-transparent backdrop-blur-md z-10">
+                        Rendered Output
                     </div>
+                    <article className="p-10 lg:p-14 editorial-text text-slate-800 dark:text-slate-300">
+                        <MarkdownPreview content={content} />
+                    </article>
                 </section>
             </main>
+
+            {/* Floating Toolbar */}
+            <nav className={`floating-toolbar group tactile-bounce ${focusMode ? 'translate-y-32' : ''}`}>
+                <div className="flex items-center gap-1 border-r border-white/10 pr-6 mr-6">
+                    <button onClick={insertTable} className="toolbar-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18" /></svg>
+                        <span>Table</span>
+                    </button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-end mr-4">
+                        <span className="text-[10px] font-black text-indigo-500/60 leading-none mb-1">DRAFT</span>
+                        <span className="text-[9px] font-bold text-slate-400 leading-none">{content.length} CHARS</span>
+                    </div>
+
+                    <button
+                        onClick={handleShare}
+                        disabled={isSaving}
+                        className="px-8 py-3 rounded-full bg-indigo-600 text-white text-[10px] font-black tracking-[0.2em] shadow-2xl shadow-indigo-500/40 hover:bg-indigo-500 hover:-translate-y-1 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 tactile-bounce"
+                    >
+                        {isSaving ? (
+                            <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3"><path d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        )}
+                        SYNC
+                    </button>
+                </div>
+            </nav>
+
+            {/* Subtle Intel Sidebar */}
+            <div className={`fixed right-6 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-50 transition-all duration-700 ${focusMode ? 'opacity-0 translate-x-12' : 'opacity-100'}`}>
+                <div className="w-[1px] h-32 bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent relative">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-500/40 blur-[2px]" />
+                </div>
+            </div>
         </div>
     );
 };

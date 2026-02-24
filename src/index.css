@@ -3,51 +3,188 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --refractive-border: rgba(255, 255, 255, 0.6);
+    --mesh-1: #6366f1;
+    --mesh-2: #a855f7;
+    --mesh-3: #ec4899;
+    --mesh-4: #3b82f6;
+    --inner-glow: rgba(255, 255, 255, 0.4);
+    --inner-border: rgba(255, 255, 255, 0.2);
+    --accent-glow: rgba(99, 102, 241, 0.15);
+  }
+
+  .dark {
+    --glass-bg: rgba(8, 10, 15, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --refractive-border: rgba(255, 255, 255, 0.1);
+    --mesh-1: #1e1b4b;
+    --mesh-2: #312e81;
+    --mesh-3: #581c87;
+    --mesh-4: #1e3a8a;
+    --inner-glow: rgba(255, 255, 255, 0.03);
+    --inner-border: rgba(255, 255, 255, 0.05);
+    --accent-glow: rgba(99, 102, 241, 0.05);
+  }
+
   body {
-    @apply antialiased text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950;
+    @apply antialiased text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 font-sans selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-100 overflow-hidden;
   }
 }
 
-/* Custom scrollbar */
+@layer components {
+
+  /* Mesh Gradient Animation */
+  .mesh-background {
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    z-index: -1;
+    background: radial-gradient(circle at 50% 50%, var(--mesh-1), transparent 50%),
+      radial-gradient(circle at 10% 10%, var(--mesh-2), transparent 40%),
+      radial-gradient(circle at 90% 90%, var(--mesh-3), transparent 40%),
+      radial-gradient(circle at 90% 10%, var(--mesh-4), transparent 40%),
+      radial-gradient(circle at 10% 90%, var(--mesh-2), transparent 40%);
+    filter: blur(80px) saturate(1.5);
+    animation: mesh-rotate 40s linear infinite;
+    opacity: 0.6;
+  }
+
+  /* Liquid Glass 2.0 */
+  /* Liquid Glass 3.0: Infinite Depth */
+  .liquid-glass {
+    @apply backdrop-blur-[60px] bg-[var(--glass-bg)] border border-[var(--glass-border)];
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px var(--inner-border),
+      inset 0 1px 1px 0 var(--inner-glow);
+  }
+
+  .refractive-edge {
+    box-shadow: inset 0 0 0 1px var(--refractive-border);
+  }
+
+  .premium-card {
+    @apply liquid-glass rounded-[2.5rem] refractive-edge transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl hover:shadow-indigo-500/10;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 font-black;
+  }
+
+  .floating-toolbar {
+    @apply fixed bottom-10 left-1/2 -translate-x-1/2 liquid-glass refractive-edge px-8 py-4 rounded-full flex items-center gap-8 shadow-2xl z-[100] transition-all duration-500 hover:bottom-11 active:scale-95;
+  }
+
+  .toolbar-btn {
+    @apply p-2 rounded-xl text-slate-400 hover:text-indigo-500 hover:bg-white/10 dark:hover:bg-black/20 transition-all duration-300 flex flex-col items-center gap-1 active:scale-90;
+  }
+
+  .toolbar-btn span {
+    @apply text-[9px] font-black uppercase tracking-widest opacity-0 transition-opacity;
+  }
+
+  .toolbar-btn:hover span {
+    @apply opacity-100;
+  }
+
+  /* Phase 3: Editorial & Focus Mode Utilities */
+  .editorial-text {
+    font-family: 'Charter', 'Georgia', 'Cambria', serif;
+    @apply leading-[1.8] tracking-normal;
+  }
+
+  .focus-dim {
+    @apply opacity-10 scale-[0.98] blur-xl pointer-events-none;
+  }
+
+  .focus-active {
+    @apply bg-transparent shadow-none;
+  }
+
+  .tactile-bounce {
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .tactile-bounce:active {
+    @apply scale-90;
+  }
+}
+
+@keyframes mesh-rotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+/* Elite Typography Scanlines Effect (Subtle) */
+.scanlines::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.01), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.01));
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Scrollbar Overhaul */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 dark:bg-slate-800 rounded-full border-2 border-solid border-transparent bg-clip-padding hover:bg-slate-300 dark:hover:bg-slate-700;
+  @apply bg-indigo-500/20 rounded-full hover:bg-indigo-500/40;
 }
 
-/* Markdown specific styles */
-.markdown-body table {
-  @apply w-full border-collapse my-8 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800;
+/* Markdown Refinement */
+.markdown-body {
+  @apply font-sans leading-[1.8] text-slate-700 dark:text-slate-300;
 }
 
-.markdown-body th {
-  @apply bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-left text-sm font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800;
+.markdown-body h1 {
+  @apply text-4xl font-black tracking-tighter mb-10 text-slate-900 dark:text-white;
 }
 
-.markdown-body td {
-  @apply px-4 py-3 text-sm text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/50;
+.markdown-body p {
+  @apply mb-6;
 }
 
-.markdown-body tr:last-child td {
-  @apply border-b-0;
-}
-
-.markdown-body tr:nth-child(even) {
-  @apply bg-slate-50/30 dark:bg-slate-900/20;
-}
-
-/* Syntax highlighting */
 pre code.hljs {
-  @apply p-6 rounded-2xl block overflow-x-auto bg-slate-900 text-slate-100 shadow-xl my-6;
+  @apply p-10 rounded-[2rem] block overflow-x-auto bg-slate-950 text-slate-100 border border-white/5 relative shadow-inner;
 }
 
-.code-wrapper {
-  @apply my-6;
+pre::after {
+  content: "CODE";
+  @apply absolute top-4 right-8 text-[9px] font-black tracking-[0.3em] text-white/20;
+}
+
+.spotlight {
+  @apply relative;
+}
+
+.spotlight::after {
+  content: "";
+  @apply absolute -inset-px rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none;
+  background: radial-gradient(circle at var(--x) var(--y), rgba(99, 102, 241, 0.15), transparent 40%);
 }

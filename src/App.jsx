@@ -10,12 +10,21 @@ import 'highlight.js/styles/atom-one-dark.css';
 function App() {
     return (
         <Router>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-                <Routes>
-                    <Route path="/" element={<Editor />} />
-                    <Route path="/view/:id" element={<Viewer />} />
-                </Routes>
-                <Toaster position="bottom-right" />
+            <div className="relative min-h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-500 selection:bg-indigo-500/20">
+                <div className="mesh-background" />
+                <div className="relative z-10 w-full h-full">
+                    <Routes>
+                        <Route path="/" element={<Editor />} />
+                        <Route path="/view/:id" element={<Viewer />} />
+                    </Routes>
+                </div>
+                <Toaster
+                    position="bottom-right"
+                    toastOptions={{
+                        className: 'liquid-glass refractive-edge dark:text-white dark:border-white/10 rounded-3xl shadow-2xl',
+                        duration: 5000,
+                    }}
+                />
             </div>
         </Router>
     );

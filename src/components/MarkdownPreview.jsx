@@ -21,18 +21,16 @@ const MarkdownPreview = ({ content }) => {
         if (previewRef.current) {
             previewRef.current.innerHTML = marked.parse(content || '');
 
-            // Add Copy Buttons to Code Blocks
+            // Add Copy Buttons and Spotlight to Code Blocks
             const preTags = previewRef.current.querySelectorAll('pre');
             preTags.forEach((pre) => {
-                // Create wrapper if not already wrapped
                 if (pre.parentNode.classList.contains('code-wrapper')) return;
 
                 const wrapper = document.createElement('div');
-                wrapper.className = 'relative group code-wrapper';
+                wrapper.className = 'relative group code-wrapper spotlight liquid-glass refractive-edge mt-12 mb-16 overflow-hidden tactile-bounce';
 
-                // Setup button
                 const button = document.createElement('button');
-                button.className = 'absolute top-2 right-2 p-1 rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs';
+                button.className = 'absolute top-6 right-8 p-2 rounded-xl bg-white/5 refractive-edge text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-90 text-[9px] font-black uppercase tracking-widest z-20';
                 button.innerText = 'Copy';
 
                 button.addEventListener('click', () => {
@@ -43,7 +41,6 @@ const MarkdownPreview = ({ content }) => {
                     setTimeout(() => button.innerText = 'Copy', 2000);
                 });
 
-                // Insert wrapper
                 pre.parentNode.insertBefore(wrapper, pre);
                 wrapper.appendChild(pre);
                 wrapper.appendChild(button);
@@ -51,13 +48,24 @@ const MarkdownPreview = ({ content }) => {
         }
     }, [content]);
 
+    useEffect(() => {
+        const handlePointerMove = (e) => {
+            const spotlights = document.querySelectorAll('.spotlight');
+            spotlights.forEach(spot => {
+                const rect = spot.getBoundingClientRect();
+                spot.style.setProperty('--x', `${e.clientX - rect.left}px`);
+                spot.style.setProperty('--y', `${e.clientY - rect.top}px`);
+            });
+        };
+        window.addEventListener('pointermove', handlePointerMove);
+        return () => window.removeEventListener('pointermove', handlePointerMove);
+    }, []);
+
     return (
         <div
             ref={previewRef}
-            className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl dark:prose-invert max-w-none p-4 markdown-body"
-        >
-            {/* Content injected via innerHTML */}
-        </div>
+            className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl dark:prose-invert max-w-none markdown-body"
+        />
     );
 };
 
