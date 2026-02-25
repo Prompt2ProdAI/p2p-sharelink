@@ -1,55 +1,46 @@
-# Markdown Share App - Setup Guide
+# Markdown Share App
+
+A Vite + React markdown sharing app backed by Supabase.
 
 ## Prerequisites
-- Node.js installed
-- A Supabase account (free)
+- Node.js 18+
+- A Supabase project
 
-## 1. Setup Supabase
-1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. Go to the **SQL Editor** in the sidebar and run this query to create the table:
-   ```sql
-   create table documents (
-     id uuid default gen_random_uuid() primary key,
-     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-     content text,
-     expires_at timestamp with time zone
-   );
-   ```
-3. Go to **Project Settings** -> **API**.
-4. Copy the `Project URL` and `anon` public key.
-
-## 2. Setup Local Project
-1. Create a `.env` file in the root of the project (next to `package.json`).
+## Local Setup
+1. Create a `.env` file in the project root.
 2. Add your Supabase keys:
-   ```env
-   VITE_SUPABASE_URL=your_project_url_here
-   VITE_SUPABASE_KEY=your_anon_key_here
-   ```
 
-## 3. Install & Run
-Run these commands in your VS Code terminal:
+```env
+VITE_SUPABASE_URL=your_project_url_here
+VITE_SUPABASE_KEY=your_anon_key_here
+```
+
+3. Install and run:
 
 ```bash
-# Install dependencies
 npm install
-
-# Start the dev server
 npm run dev
 ```
 
-Open the link shown (usually `http://localhost:5173`).
+## Cloudflare Pages Deployment
+This project is configured for Cloudflare Pages.
 
-## Features
-- **Write**: Type markdown on the left, see it on the right.
-- **Code**: Use \`\`\`js blocks for syntax highlighting.
-- **Share**: Click "Share (48h)" to get a link.
-- **View**: Open the link to see the static content.
-- **Expiry**: Links stop working after 48 hours.
-- **Dark Mode**: Automatically respects your system's dark mode setting.
+### 1. Connect the repo in Cloudflare Pages
+- Framework preset: `Vite`
+- Build command: `npm run build`
+- Build output directory: `dist`
 
-## Dependencies Used
-- **React + Vite**: Fast frontend.
-- **Tailwind CSS**: Styling.
-- **Marked**: Markdown parsing.
-- **Highlight.js**: Code syntax highlighting.
-- **Supabase**: Backend database.
+### 2. Add environment variables in Pages
+Set these for Production (and Preview if needed):
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_KEY`
+
+### 3. SPA routing fallback
+The file `public/_redirects` is included so routes like `/view/:id` resolve to `index.html`.
+
+### 4. Optional CLI deploy
+`wrangler.toml` is included with `pages_build_output_dir = "dist"` for `wrangler pages deploy` workflows.
+
+## Notes
+- Links are stored in Supabase with expiry metadata.
+- The frontend uses `BrowserRouter`, so the `_redirects` file is required on static hosting.
